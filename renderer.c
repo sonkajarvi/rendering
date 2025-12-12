@@ -22,5 +22,5 @@ void renderer_draw_quad(struct renderer *rend, vec3 position, vec3 scale, vec4 c
     for (int i = 0; i < 6; i++)
         glm_mat4_mulv3(model, vertices[i].position, 1.0f, vertices[i].position);
 
-    rend->push_vertices(rend, vertices, 6);
+    GL_renderer_push_vertices(rend, vertices, 6);
 }

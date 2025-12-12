@@ -138,10 +138,10 @@ void GL_renderer_clear_color(struct renderer *rend, float r, float g, float b)
 
 void GL_renderer_new_frame(struct renderer *rend, struct window *w)
 {
-    XWindowAttributes attrs;
+    XWindowAttributes wa;
 
-    XGetWindowAttributes(w->display, w->window, &attrs);
-    glViewport(0, 0, attrs.width, attrs.height);
+    XGetWindowAttributes(w->display, w->window, &wa);
+    glViewport(0, 0, wa.width, wa.height);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -150,8 +150,8 @@ void GL_renderer_new_frame(struct renderer *rend, struct window *w)
     glUseProgram(rend->program);
 
     GLfloat size[2];
-    size[0] = attrs.width;
-    size[1] = attrs.height;
+    size[0] = wa.width;
+    size[1] = wa.height;
     glUniform2fv(glGetUniformLocation(rend->program, "u_window_size"), 1, size);
 }
 

@@ -7,37 +7,37 @@
 
 static Atom wm_delete_window;
 
-int X11_window_create(struct window *w, int width, int height)
+int X11_window_create(struct window *win, int width, int height)
 {
     XVisualInfo *vi;
     XSetWindowAttributes swa;
 
-    if (!w)
+    if (!win)
         return -1;
 
-    w->display = XOpenDisplay(NULL);
-    if (!w->display) {
+    win->display = XOpenDisplay(NULL);
+    if (!win->display) {
         printf(INFO "window: failed to open display\n");
         return -1;
     }
 
-    vi = GLX_get_visual(w);
+    vi = GLX_get_visual(win);
     if (!vi) {
         printf(ERROR "window: failed to get VisualInfo from FB config\n");
-        XCloseDisplay(w->display);
+        XCloseDisplay(win->display);
     }
 
-    w->root = DefaultRootWindow(w->display);
+    win->root = DefaultRootWindow(win->display);
 
     memset(&swa, 0, sizeof(swa));
-    swa.colormap = XCreateColormap(w->display, w->root, vi->visual, AllocNone);
+    swa.colormap = XCreateColormap(win->display, win->root, vi->visual, AllocNone);
     swa.background_pixmap = None;
     swa.border_pixel = 0;
     swa.event_mask = StructureNotifyMask;
 
-    w->window = XCreateWindow(
-        w->display,
-        w->root,
+    win->window = XCreateWindow(
+        win->display,
+        win->root,
         0,
         0,
         width,
@@ -51,15 +51,15 @@ int X11_window_create(struct window *w, int width, int height)
     );
     XFree(vi);
 
-    if (GLX_create_context(w) != 0) {
+    if (GLX_create_context(win) != 0) {
         printf(ERROR "GLX: failed to create context\n");
-        XDestroyWindow(w->display, w->window);
-        XCloseDisplay(w->display);
+        XDestroyWindow(win->display, win->window);
+        XCloseDisplay(win->display);
         return -1;
     }
 
-    wm_delete_window = XInternAtom(w->display, "WM_DELETE_WINDOW", False);
-    XSetWMProtocols(w->display, w->window, &wm_delete_window, 1);
+    wm_delete_window = XInternAtom(win->display, "WM_DELETE_WINDOW", False);
+    XSetWMProtocols(win->display, win->window, &wm_delete_window, 1);
     return 0;
 }
 
@@ -85,7 +85,6 @@ void X11_window_swap_buffers(struct window *w)
 void X11_window_poll_events(struct window *w)
 {
     XEvent event;
-    XWindowAttributes wa;
 
     if (!w)
         return;
@@ -100,17 +99,7 @@ void X11_window_poll_events(struct window *w)
                 return;
             }
             break;
-
-        case ConfigureNotify:
-            XGetWindowAttributes(w->display, w->window, &wa);
-            w->width = wa.width;
-            w->height = wa.height;
-
-            /* TODO: Update only on resize. */
-            w->should_redraw = true;
-            break;
         }
-
     }
 
     XFlush(w->display);
