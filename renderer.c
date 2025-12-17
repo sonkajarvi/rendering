@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2025, sonkajarvi
+ *
+ * Licensed under the BSD 2-Clause License.
+ * The full license can be found in the LICENSE.txt file.
+ */
+
 #include <cglm/affine.h>
 
 #include "rendering.h"
