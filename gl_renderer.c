@@ -107,17 +107,27 @@ int GL_renderer_create(struct renderer *rend)
     glBindBuffer(GL_ARRAY_BUFFER, rend->vbo);
     glBufferData(GL_ARRAY_BUFFER, VERTEX_BUFFER_LENGTH, NULL, GL_DYNAMIC_DRAW);
 
-    /* Position */
-
+    /* position */
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
         sizeof(struct vertex), (void *)offsetof(struct vertex, position));
     glEnableVertexAttribArray(0);
 
-    /* Color */
-
+    /* color */
     glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct vertex), (void *)offsetof(struct vertex, color));
     glEnableVertexAttribArray(1);
+
+    /* center */
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void *)offsetof(struct vertex, center));
+    glEnableVertexAttribArray(2);
+    // glVertexAttribDivisor(2, 1);
+
+    /* radius */
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void *)offsetof(struct vertex, radius));
+    glEnableVertexAttribArray(3);
+    // glVertexAttribDivisor(3, 1);
 
     rend->program = create_shader(rend, RESOURCES_PATH "/vertex_2d.glsl", RESOURCES_PATH "/fragment_2d.glsl");
     if (!rend->program) {
@@ -159,7 +169,7 @@ void GL_renderer_new_frame(struct renderer *rend, struct window *w)
     GLfloat size[2];
     size[0] = wa.width;
     size[1] = wa.height;
-    glUniform2fv(glGetUniformLocation(rend->program, "u_window_size"), 1, size);
+    glUniform2fv(glGetUniformLocation(rend->program, "u_WindowSize"), 1, size);
 }
 
 void GL_renderer_flush_vertices(struct renderer *rend)

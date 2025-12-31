@@ -9,25 +9,20 @@
 
 #include "rendering.h"
 
-void renderer_draw_quad(struct renderer *rend, vec3 position, vec3 scale, vec4 color)
+void renderer_draw_circle(struct renderer *r, vec2 position, float radius, vec4 color)
 {
-    mat4 model = GLM_MAT4_IDENTITY_INIT;
+    vec2 p = {position[0] - radius, position[1] + radius};
+    vec2 c = {position[0], position[1]};
+    float r2 = 2.0f * radius;
+
     struct vertex vertices[] = {
-        { {  1.0f,  1.0f, 0.0f }, vec4_unwrap(color) },     /* top right */
-        { {  1.0f, -1.0f, 0.0f }, vec4_unwrap(color) },     /* bottom right */
-        { { -1.0f,  1.0f, 0.0f }, vec4_unwrap(color) },     /* top left */
-        { {  1.0f, -1.0f, 0.0f }, vec4_unwrap(color) },     /* bottom right */
-        { { -1.0f, -1.0f, 0.0f }, vec4_unwrap(color) },     /* bottom left */
-        { { -1.0f,  1.0f, 0.0f }, vec4_unwrap(color) }      /* top left */
+        {{p[0] + r2, p[1],    }, vec4_unwrap(color), vec2_unwrap(c), radius},   /* top right */
+        {{p[0] + r2, p[1] - r2}, vec4_unwrap(color), vec2_unwrap(c), radius},   /* bottom right */
+        {{p[0],      p[1],    }, vec4_unwrap(color), vec2_unwrap(c), radius},   /* top left */
+        {{p[0] + r2, p[1] - r2}, vec4_unwrap(color), vec2_unwrap(c), radius},   /* bottom right */
+        {{p[0],      p[1] - r2}, vec4_unwrap(color), vec2_unwrap(c), radius},   /* bottom left */
+        {{p[0],      p[1],    }, vec4_unwrap(color), vec2_unwrap(c), radius}    /* top left */
     };
 
-    glm_translate(model, position);
-    glm_vec3_scale(scale, 0.5f, scale);
-    glm_scale(model, scale);
-
-    /* Apply model to vertices */
-    for (int i = 0; i < 6; i++)
-        glm_mat4_mulv3(model, vertices[i].position, 1.0f, vertices[i].position);
-
-    GL_renderer_push_vertices(rend, vertices, 6);
+    GL_renderer_push_vertices(r, vertices, 6);
 }

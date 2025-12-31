@@ -1,25 +1,22 @@
 #version 330 core
 
-layout (location = 0) in vec3 a_position;
-layout (location = 1) in vec4 a_color;
-// layout (location = 2) in vec2 a_tex_coords;
-// layout (location = 3) in float a_tex_index;
+layout (location = 0) in vec2 a_Position;
+layout (location = 1) in vec4 a_Color;
+layout (location = 2) in vec2 a_Center;
+layout (location = 3) in float a_Radius;
 
-out vec4 v_color;
-// out vec2 v_tex_coords;
-// out float v_tex_index;
+out vec4 v_Color;
+flat out vec2 v_Center;
+flat out float v_Radius;
 
-uniform vec2 u_window_size;
+uniform vec2 u_WindowSize;
 
 void main()
 {
-    v_color = a_color;
-    // v_tex_coords = a_tex_coords;
-    // v_tex_index = a_tex_index;
+    v_Color = a_Color;
+    v_Center = a_Center;
+    v_Radius = a_Radius;
 
-    vec2 position;
-    position.x = (a_position.x / u_window_size.x) * 2.0;
-    position.y = (a_position.y / u_window_size.y) * 2.0;
-
-    gl_Position = vec4(position, 0.0, 1.0);
+    vec2 p = 2.0 * a_Position / u_WindowSize;
+    gl_Position = vec4(p, 0.0, 1.0);
 }

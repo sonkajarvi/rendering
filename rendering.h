@@ -21,13 +21,17 @@
 #define INFO    "[info] "
 #define ERROR   "[error] "
 
+#define vec2_unwrap(v) {v[0], v[1]}
+#define vec3_unwrap(v) {v[0], v[1], v[2]}
 #define vec4_unwrap(v) {v[0], v[1], v[2], v[3]}
 
 struct window;
 
 struct vertex {
-    vec3 position;
+    vec2 position;
     vec4 color;
+    vec2 center;
+    float radius;
 };
 
 struct renderer {
@@ -63,7 +67,7 @@ void window_swap_buffers(struct window *win);
 
 void window_set_color(struct window *win, float r, float g, float b);
 
-void renderer_draw_quad(struct renderer *rend, vec3 position, vec3 scale, vec4 color);
+void renderer_draw_circle(struct renderer *r, vec2 position, float radius, vec4 color);
 
 /* X11 window */
 
