@@ -5,14 +5,31 @@
  * The full license can be found in the LICENSE.txt file.
  */
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #include <X11/Xlib.h>
 
 #include "rendering.h"
 
 static Atom wm_delete_window;
+
+/* time is in nanoseconds */
+static uint64_t get_time(void)
+{
+    struct timespec ts;
+
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return (uint64_t)ts.tv_sec * 1000000000 + (uint64_t)ts.tv_nsec;
+}
+
+/* time is in seconds */
+double X11_window_get_time(struct window *win)
+{
+    return (double)(get_time() - win->time_offset) / 1000000000.0;
+}
 
 int X11_window_create(struct window *win, int width, int height)
 {
@@ -67,6 +84,8 @@ int X11_window_create(struct window *win, int width, int height)
 
     wm_delete_window = XInternAtom(win->display, "WM_DELETE_WINDOW", False);
     XSetWMProtocols(win->display, win->window, &wm_delete_window, 1);
+
+    win->time_offset = get_time();
     return 0;
 }
 

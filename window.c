@@ -57,8 +57,16 @@ bool window_should_close(struct window *win)
 
 void window_poll_events(struct window *win)
 {
-    if (win)
-        X11_window_poll_events(win);
+    static double last = 0.0;
+
+    if (!win)
+        return;
+
+    double now = window_get_time(win);
+    win->delta_time = (float)(now - last);
+    last = now;
+
+    X11_window_poll_events(win);
 }
 
 void window_swap_buffers(struct window *win)
@@ -71,4 +79,9 @@ void window_set_color(struct window *win, float r, float g, float b)
 {
     if (win)
         GL_renderer_clear_color(&win->renderer, r, g, b);
+}
+
+double window_get_time(struct window *win)
+{
+    return win ? X11_window_get_time(win) : 0.0;
 }

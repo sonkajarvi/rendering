@@ -47,11 +47,14 @@ struct renderer {
 struct window {
     struct renderer renderer;
     bool should_close;
+    float delta_time;
+    int fps;
 
     /* X11 */
     Display *display;
     Window root;
     Window window;
+    uint64_t time_offset;
 
     /* GLX */
     GLXContext context;
@@ -66,6 +69,7 @@ void window_poll_events(struct window *win);
 void window_swap_buffers(struct window *win);
 
 void window_set_color(struct window *win, float r, float g, float b);
+double window_get_time(struct window *win);
 
 void renderer_draw_circle(struct renderer *r, vec2 position, float radius, vec4 color);
 
@@ -76,6 +80,8 @@ void X11_window_destroy(struct window *win);
 void X11_window_show(struct window *win);
 void X11_window_swap_buffers(struct window *win);
 void X11_window_poll_events(struct window *win);
+
+double X11_window_get_time(struct window *win);
 
 /* GLX context */
 
