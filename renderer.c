@@ -11,7 +11,21 @@
 
 #include "rendering.h"
 
-void renderer_draw_rect(struct renderer *rdr, vec2 position, vec2 size, vec4 color);
+void renderer_draw_rect(struct renderer *rdr, vec2 position, vec2 size, vec4 color)
+{
+    /* TODO: make this const */
+    static vec4 r = GLM_VEC4_ZERO_INIT;
+
+    renderer_draw_roundrect(rdr, position, size, r, color);
+}
+
+void renderer_draw_circle(struct renderer *rdr, vec2 position, float radius, vec4 color)
+{
+    vec2 s = {radius * 2.0f, radius * 2.0f};
+    vec4 r = {radius, radius, radius, radius};
+
+    renderer_draw_roundrect(rdr, position, s, r, color);
+}
 
 void renderer_draw_roundrect(struct renderer *rdr, vec2 position, vec2 size, vec4 radius, vec4 color)
 {
@@ -32,26 +46,6 @@ void renderer_draw_roundrect(struct renderer *rdr, vec2 position, vec2 size, vec
         {{p[0] + size[0], p[1] - size[1]}, vec4_unwrap(color), vec2_unwrap(position), vec2_unwrap(size), vec4_unwrap(r)},   /* bottom right */
         {{p[0],           p[1] - size[1]}, vec4_unwrap(color), vec2_unwrap(position), vec2_unwrap(size), vec4_unwrap(r)},   /* bottom left */
         {{p[0],           p[1],         }, vec4_unwrap(color), vec2_unwrap(position), vec2_unwrap(size), vec4_unwrap(r)}    /* top left */
-    };
-
-    GL_renderer_push_vertices(rdr, v, ARRAYSIZE(v));
-}
-
-void renderer_draw_circle(struct renderer *rdr, vec2 position, float radius, vec4 color)
-{
-    vec2 p = {position[0] - radius, position[1] + radius};
-    float r2 = 2.0f * radius;
-    vec2 c = {position[0], position[1]};
-    vec2 s = {r2, r2};
-    vec4 r = GLM_VEC4_ZERO_INIT;
-
-    struct vertex v[] = {
-        {{p[0] + r2, p[1],    }, vec4_unwrap(color), vec2_unwrap(c), vec2_unwrap(s), vec4_unwrap(r)},   /* top right */
-        {{p[0] + r2, p[1] - r2}, vec4_unwrap(color), vec2_unwrap(c), vec2_unwrap(s), vec4_unwrap(r)},   /* bottom right */
-        {{p[0],      p[1],    }, vec4_unwrap(color), vec2_unwrap(c), vec2_unwrap(s), vec4_unwrap(r)},   /* top left */
-        {{p[0] + r2, p[1] - r2}, vec4_unwrap(color), vec2_unwrap(c), vec2_unwrap(s), vec4_unwrap(r)},   /* bottom right */
-        {{p[0],      p[1] - r2}, vec4_unwrap(color), vec2_unwrap(c), vec2_unwrap(s), vec4_unwrap(r)},   /* bottom left */
-        {{p[0],      p[1],    }, vec4_unwrap(color), vec2_unwrap(c), vec2_unwrap(s), vec4_unwrap(r)}    /* top left */
     };
 
     GL_renderer_push_vertices(rdr, v, ARRAYSIZE(v));

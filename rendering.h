@@ -82,8 +82,8 @@ void window_set_color(struct window *win, float r, float g, float b);
 double window_get_time(struct window *win);
 
 void renderer_draw_rect(struct renderer *rdr, vec2 position, vec2 size, vec4 color);
-void renderer_draw_roundrect(struct renderer *rdr, vec2 position, vec2 size, vec4 radius, vec4 color);
 void renderer_draw_circle(struct renderer *rdr, vec2 position, float radius, vec4 color);
+void renderer_draw_roundrect(struct renderer *rdr, vec2 position, vec2 size, vec4 radius, vec4 color);
 
 /* X11 window */
 
