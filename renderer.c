@@ -6,23 +6,53 @@
  */
 
 #include <cglm/affine.h>
+#include <cglm/vec2.h>
+#include <cglm/vec4.h>
 
 #include "rendering.h"
 
-void renderer_draw_circle(struct renderer *r, vec2 position, float radius, vec4 color)
-{
-    vec2 p = {position[0] - radius, position[1] + radius};
-    vec2 c = {position[0], position[1]};
-    float r2 = 2.0f * radius;
+void renderer_draw_rect(struct renderer *rdr, vec2 position, vec2 size, vec4 color);
 
-    struct vertex vertices[] = {
-        {{p[0] + r2, p[1],    }, vec4_unwrap(color), vec2_unwrap(c), radius},   /* top right */
-        {{p[0] + r2, p[1] - r2}, vec4_unwrap(color), vec2_unwrap(c), radius},   /* bottom right */
-        {{p[0],      p[1],    }, vec4_unwrap(color), vec2_unwrap(c), radius},   /* top left */
-        {{p[0] + r2, p[1] - r2}, vec4_unwrap(color), vec2_unwrap(c), radius},   /* bottom right */
-        {{p[0],      p[1] - r2}, vec4_unwrap(color), vec2_unwrap(c), radius},   /* bottom left */
-        {{p[0],      p[1],    }, vec4_unwrap(color), vec2_unwrap(c), radius}    /* top left */
+void renderer_draw_roundrect(struct renderer *rdr, vec2 position, vec2 size, vec4 radius, vec4 color)
+{
+    vec2 h = {size[0] / 2.0f, size[1] / 2.0f};
+    vec2 p = {position[0] - h[0], position[1] + h[1]};
+    vec4 r;
+
+    float m = min(h[0], h[1]);
+    r[0] = min(m, radius[0]);
+    r[1] = min(m, radius[1]);
+    r[2] = min(m, radius[2]);
+    r[3] = min(m, radius[3]);
+
+    struct vertex v[] = {
+        {{p[0] + size[0], p[1],         }, vec4_unwrap(color), vec2_unwrap(position), vec2_unwrap(size), vec4_unwrap(r)},   /* top right */
+        {{p[0] + size[0], p[1] - size[1]}, vec4_unwrap(color), vec2_unwrap(position), vec2_unwrap(size), vec4_unwrap(r)},   /* bottom right */
+        {{p[0],           p[1],         }, vec4_unwrap(color), vec2_unwrap(position), vec2_unwrap(size), vec4_unwrap(r)},   /* top left */
+        {{p[0] + size[0], p[1] - size[1]}, vec4_unwrap(color), vec2_unwrap(position), vec2_unwrap(size), vec4_unwrap(r)},   /* bottom right */
+        {{p[0],           p[1] - size[1]}, vec4_unwrap(color), vec2_unwrap(position), vec2_unwrap(size), vec4_unwrap(r)},   /* bottom left */
+        {{p[0],           p[1],         }, vec4_unwrap(color), vec2_unwrap(position), vec2_unwrap(size), vec4_unwrap(r)}    /* top left */
     };
 
-    GL_renderer_push_vertices(r, vertices, 6);
+    GL_renderer_push_vertices(rdr, v, ARRAYSIZE(v));
+}
+
+void renderer_draw_circle(struct renderer *rdr, vec2 position, float radius, vec4 color)
+{
+    vec2 p = {position[0] - radius, position[1] + radius};
+    float r2 = 2.0f * radius;
+    vec2 c = {position[0], position[1]};
+    vec2 s = {r2, r2};
+    vec4 r = GLM_VEC4_ZERO_INIT;
+
+    struct vertex v[] = {
+        {{p[0] + r2, p[1],    }, vec4_unwrap(color), vec2_unwrap(c), vec2_unwrap(s), vec4_unwrap(r)},   /* top right */
+        {{p[0] + r2, p[1] - r2}, vec4_unwrap(color), vec2_unwrap(c), vec2_unwrap(s), vec4_unwrap(r)},   /* bottom right */
+        {{p[0],      p[1],    }, vec4_unwrap(color), vec2_unwrap(c), vec2_unwrap(s), vec4_unwrap(r)},   /* top left */
+        {{p[0] + r2, p[1] - r2}, vec4_unwrap(color), vec2_unwrap(c), vec2_unwrap(s), vec4_unwrap(r)},   /* bottom right */
+        {{p[0],      p[1] - r2}, vec4_unwrap(color), vec2_unwrap(c), vec2_unwrap(s), vec4_unwrap(r)},   /* bottom left */
+        {{p[0],      p[1],    }, vec4_unwrap(color), vec2_unwrap(c), vec2_unwrap(s), vec4_unwrap(r)}    /* top left */
+    };
+
+    GL_renderer_push_vertices(rdr, v, ARRAYSIZE(v));
 }

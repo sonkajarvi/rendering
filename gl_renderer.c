@@ -108,7 +108,7 @@ int GL_renderer_create(struct renderer *rend)
     glBufferData(GL_ARRAY_BUFFER, VERTEX_BUFFER_LENGTH, NULL, GL_DYNAMIC_DRAW);
 
     /* position */
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
         sizeof(struct vertex), (void *)offsetof(struct vertex, position));
     glEnableVertexAttribArray(0);
 
@@ -121,13 +121,16 @@ int GL_renderer_create(struct renderer *rend)
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,
         sizeof(struct vertex), (void *)offsetof(struct vertex, center));
     glEnableVertexAttribArray(2);
-    // glVertexAttribDivisor(2, 1);
+
+    /* size */
+    glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void *)offsetof(struct vertex, size));
+    glEnableVertexAttribArray(3);
 
     /* radius */
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE,
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct vertex), (void *)offsetof(struct vertex, radius));
-    glEnableVertexAttribArray(3);
-    // glVertexAttribDivisor(3, 1);
+    glEnableVertexAttribArray(4);
 
     rend->program = create_shader(rend, RESOURCES_PATH "/vertex_2d.glsl", RESOURCES_PATH "/fragment_2d.glsl");
     if (!rend->program) {

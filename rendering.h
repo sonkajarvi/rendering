@@ -25,13 +25,23 @@
 #define vec3_unwrap(v) {v[0], v[1], v[2]}
 #define vec4_unwrap(v) {v[0], v[1], v[2], v[3]}
 
+#define ARRAYSIZE(x) (sizeof(x) / sizeof(*x))
+
+#define min(a, b)                \
+    ({                           \
+        __typeof__(a) __a = (a); \
+        __typeof__(a) __b = (b); \
+        __a < __b ? __a : __b;   \
+    })
+
 struct window;
 
 struct vertex {
     vec2 position;
     vec4 color;
     vec2 center;
-    float radius;
+    vec2 size;
+    vec4 radius;
 };
 
 struct renderer {
@@ -71,7 +81,9 @@ void window_swap_buffers(struct window *win);
 void window_set_color(struct window *win, float r, float g, float b);
 double window_get_time(struct window *win);
 
-void renderer_draw_circle(struct renderer *r, vec2 position, float radius, vec4 color);
+void renderer_draw_rect(struct renderer *rdr, vec2 position, vec2 size, vec4 color);
+void renderer_draw_roundrect(struct renderer *rdr, vec2 position, vec2 size, vec4 radius, vec4 color);
+void renderer_draw_circle(struct renderer *rdr, vec2 position, float radius, vec4 color);
 
 /* X11 window */
 

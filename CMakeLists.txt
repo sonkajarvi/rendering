@@ -28,6 +28,7 @@ target_include_directories(rendering PRIVATE
 
 target_link_libraries(rendering PRIVATE
     "X11"
+    "m"
 )
 
 target_compile_options(rendering PRIVATE
