@@ -84,8 +84,8 @@ static int GLX_choose_fbconfig(struct window *w, int screen, GLXFBConfig *fbc)
 }
 
 static const int context_attribs[] = {
-    GLX_CONTEXT_MAJOR_VERSION_ARB,  3,
-    GLX_CONTEXT_MINOR_VERSION_ARB,  3,
+    GLX_CONTEXT_MAJOR_VERSION_ARB,  4,
+    GLX_CONTEXT_MINOR_VERSION_ARB,  6,
     GLX_CONTEXT_PROFILE_MASK_ARB,   GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
     None
 };

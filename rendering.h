@@ -42,11 +42,32 @@ struct vertex {
     vec2 center;
     vec2 size;
     vec4 radius;
+    vec2 texture_coords;
+    float texture_index;
+};
+
+struct image {
+    uint8_t *data;
+    int width;
+    int height;
+};
+
+struct texture {
+    int width;
+    int height;
+    int index;
+
+    /* OpenGL */
+    GLuint id;
 };
 
 struct renderer {
     struct vertex *v_buf;       /* also used as a buffer for shader logs */
     struct vertex *v_ptr;
+
+    struct texture *tex_array[4];
+    int tex_count;
+    struct texture white_texture;
 
     /* OpenGL */
     GLuint program;
@@ -71,6 +92,18 @@ struct window {
     GLXFBConfig fbconfig;
 };
 
+/* image */
+
+int image_load_from_file(struct image *img, const char *path);
+void image_free(struct image *img);
+
+/* GL texture */
+
+int GL_texture_create(struct texture *tex, struct image *img);
+void GL_texture_destroy(struct texture *tex);
+
+/* window */
+
 int window_create(struct window *win, int width, int height);
 void window_destroy(struct window *win);
 void window_show(struct window *win);
@@ -81,9 +114,27 @@ void window_swap_buffers(struct window *win);
 void window_set_color(struct window *win, float r, float g, float b);
 double window_get_time(struct window *win);
 
+/* renderer */
+
+/* TODO: instead of passing bunch of arguments to million different functions,
+ *       let's have a struct for the shape data and one function for drawing.
+ */
+
 void renderer_draw_rect(struct renderer *rdr, vec2 position, vec2 size, vec4 color);
 void renderer_draw_circle(struct renderer *rdr, vec2 position, float radius, vec4 color);
 void renderer_draw_roundrect(struct renderer *rdr, vec2 position, vec2 size, vec4 radius, vec4 color);
+
+void renderer_draw_textured_rect(struct renderer *rdr,
+    vec2 position, vec2 size,
+    struct texture *tex, vec4 tex_coords, vec4 color);
+
+void renderer_draw_textured_circle(struct renderer *rdr,
+    vec2 position, float radius,
+    struct texture *tex, vec4 tex_coords, vec4 color);
+
+void renderer_draw_textured_roundrect(struct renderer *rdr,
+    vec2 position, vec2 size, vec4 radius,
+    struct texture *tex, vec4 tex_coords, vec4 color);
 
 /* X11 window */
 
@@ -116,6 +167,7 @@ void GL_renderer_clear_color(struct renderer *rend, float r, float g, float b);
 void GL_renderer_new_frame(struct renderer *rend, struct window *win);
 void GL_renderer_flush_vertices(struct renderer *rend);
 void GL_renderer_push_vertices(struct renderer *rend, struct vertex *vertices, size_t count);
+void GL_renderer_use_texture(struct renderer *rdr, struct texture *tex);
 
 char *read_file(const char *path);
 

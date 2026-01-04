@@ -5,6 +5,8 @@
  * The full license can be found in the LICENSE.txt file.
  */
 
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +18,7 @@
 /* Vertex buffer length, in bytes */
 #define VERTEX_BUFFER_LENGTH 4096
 
-static GLuint create_shader(struct renderer *rend, const char *v_path, const char *f_path)
+static GLuint create_shader(struct renderer *rdr, const char *v_path, const char *f_path)
 {
     int ret;
     char *v_source, *f_source;
@@ -37,8 +39,8 @@ static GLuint create_shader(struct renderer *rend, const char *v_path, const cha
 
     glGetShaderiv(v_shader, GL_COMPILE_STATUS, &ret);
     if (!ret) {
-        glGetShaderInfoLog(v_shader, VERTEX_BUFFER_LENGTH, NULL, (void *)rend->v_buf);
-        printf(ERROR "GL: failed to compile vertex shader:\n%s", (char *)rend->v_buf);
+        glGetShaderInfoLog(v_shader, VERTEX_BUFFER_LENGTH, NULL, (void *)rdr->v_buf);
+        printf(ERROR "GL: failed to compile vertex shader:\n%s", (char *)rdr->v_buf);
         goto out_cleanup;
     }
 
@@ -56,8 +58,8 @@ static GLuint create_shader(struct renderer *rend, const char *v_path, const cha
 
     glGetShaderiv(f_shader, GL_COMPILE_STATUS, &ret);
     if (!ret) {
-        glGetShaderInfoLog(f_shader, VERTEX_BUFFER_LENGTH, NULL, (void *)rend->v_buf);
-        printf(ERROR "GL: failed to compile fragment shader:\n%s", (char *)rend->v_buf);
+        glGetShaderInfoLog(f_shader, VERTEX_BUFFER_LENGTH, NULL, (void *)rdr->v_buf);
+        printf(ERROR "GL: failed to compile fragment shader:\n%s", (char *)rdr->v_buf);
         goto out_cleanup;
     }
 
@@ -72,8 +74,8 @@ static GLuint create_shader(struct renderer *rend, const char *v_path, const cha
 
     glGetProgramiv(program, GL_LINK_STATUS, &ret);
     if (!ret) {
-        glGetProgramInfoLog(program, VERTEX_BUFFER_LENGTH, NULL, (void *)rend->v_buf);
-        printf(ERROR "GL: failed to create shader program:\n%s", (char *)rend->v_buf);
+        glGetProgramInfoLog(program, VERTEX_BUFFER_LENGTH, NULL, (void *)rdr->v_buf);
+        printf(ERROR "GL: failed to create shader program:\n%s", (char *)rdr->v_buf);
         goto out_cleanup;
     }
 
@@ -92,19 +94,21 @@ out_cleanup:
     return 0;
 }
 
-int GL_renderer_create(struct renderer *rend)
+int GL_renderer_create(struct renderer *rdr)
 {
-    rend->v_buf = malloc(VERTEX_BUFFER_LENGTH);
-    if (!rend->v_buf) {
+    struct image white;
+
+    rdr->v_buf = malloc(VERTEX_BUFFER_LENGTH);
+    if (!rdr->v_buf) {
         printf(ERROR "Failed to allocate vertex buffer\n");
         return -1;
     }
 
-    glGenVertexArrays(1, &rend->vao);
-    glBindVertexArray(rend->vao);
+    glGenVertexArrays(1, &rdr->vao);
+    glBindVertexArray(rdr->vao);
 
-    glGenBuffers(1, &rend->vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, rend->vbo);
+    glGenBuffers(1, &rdr->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, rdr->vbo);
     glBufferData(GL_ARRAY_BUFFER, VERTEX_BUFFER_LENGTH, NULL, GL_DYNAMIC_DRAW);
 
     /* position */
@@ -132,31 +136,50 @@ int GL_renderer_create(struct renderer *rend)
         sizeof(struct vertex), (void *)offsetof(struct vertex, radius));
     glEnableVertexAttribArray(4);
 
-    rend->program = create_shader(rend, RESOURCES_PATH "/vertex_2d.glsl", RESOURCES_PATH "/fragment_2d.glsl");
-    if (!rend->program) {
-        free(rend->v_buf);
+    /* texture coords */
+    glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void *)offsetof(struct vertex, texture_coords));
+    glEnableVertexAttribArray(5);
+
+    /* texture index */
+    glVertexAttribPointer(6, 1, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void *)offsetof(struct vertex, texture_index));
+    glEnableVertexAttribArray(6);
+
+    rdr->program = create_shader(rdr, RESOURCES_PATH "/vertex_2d.glsl", RESOURCES_PATH "/fragment_2d.glsl");
+    if (!rdr->program) {
+        free(rdr->v_buf);
         return -1;
     }
+
+    white.data = (uint8_t[]){0xff, 0xff, 0xff, 0xff};
+    white.width = 1;
+    white.height = 1;
+    GL_texture_create(&rdr->white_texture, &white);
+
+    memset(rdr->tex_array, 0, sizeof(rdr->tex_array));
+    rdr->tex_count = 0;
 
     return 0;
 }
 
-void GL_renderer_destroy(struct renderer *rend)
+void GL_renderer_destroy(struct renderer *rdr)
 {
-    glDeleteBuffers(1, &rend->vbo);
-    glDeleteVertexArrays(1, &rend->vao);
-    glDeleteProgram(rend->program);
+    glDeleteBuffers(1, &rdr->vbo);
+    glDeleteVertexArrays(1, &rdr->vao);
+    glDeleteProgram(rdr->program);
 
-    free(rend->v_buf);
+    GL_texture_destroy(&rdr->white_texture);
+    free(rdr->v_buf);
 }
 
-void GL_renderer_clear_color(struct renderer *rend, float r, float g, float b)
+void GL_renderer_clear_color(struct renderer *rdr, float r, float g, float b)
 {
-    (void)rend;
+    (void)rdr;
     glClearColor(r, g, b, 1.0f);
 }
 
-void GL_renderer_new_frame(struct renderer *rend, struct window *w)
+void GL_renderer_new_frame(struct renderer *rdr, struct window *w)
 {
     XWindowAttributes wa;
 
@@ -167,36 +190,67 @@ void GL_renderer_new_frame(struct renderer *rend, struct window *w)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(rend->program);
+    glUseProgram(rdr->program);
 
     GLfloat size[2];
     size[0] = wa.width;
     size[1] = wa.height;
-    glUniform2fv(glGetUniformLocation(rend->program, "u_WindowSize"), 1, size);
+    glUniform2fv(glGetUniformLocation(rdr->program, "u_WindowSize"), 1, size);
+
+    rdr->v_ptr = rdr->v_buf;
+
+    rdr->tex_count = 0;
+    GL_renderer_use_texture(rdr, &rdr->white_texture);
 }
 
-void GL_renderer_flush_vertices(struct renderer *rend)
+void GL_renderer_flush_vertices(struct renderer *rdr)
 {
+    static const GLint array[] = {0, 1, 2, 3};
     size_t offset;
 
-    glBindVertexArray(rend->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, rend->vbo);
+    if (rdr->v_ptr == rdr->v_buf)
+        return;
 
-    offset = rend->v_ptr - rend->v_buf;
-    glBufferSubData(GL_ARRAY_BUFFER, 0, offset * sizeof(struct vertex), rend->v_buf);
+    glUniform1iv(glGetUniformLocation(rdr->program, "u_Textures"), 4, array);
+
+    for (int i = 0; i < rdr->tex_count; i++)
+        glBindTextureUnit(i, rdr->tex_array[i]->id);
+
+    glBindVertexArray(rdr->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, rdr->vbo);
+
+    offset = rdr->v_ptr - rdr->v_buf;
+    glBufferSubData(GL_ARRAY_BUFFER, 0, offset * sizeof(struct vertex), rdr->v_buf);
     glDrawArrays(GL_TRIANGLES, 0, offset);
 
-    rend->v_ptr = rend->v_buf;
+    rdr->v_ptr = rdr->v_buf;
+
+    for (int i = 0; i < rdr->tex_count; i++)
+        rdr->tex_array[i]->index = -1;
 }
 
-void GL_renderer_push_vertices(struct renderer *rend, struct vertex *vertices, size_t count)
+void GL_renderer_push_vertices(struct renderer *rdr, struct vertex *vertices, size_t count)
 {
     size_t offset;
 
-    offset = rend->v_ptr - rend->v_buf;
+    offset = rdr->v_ptr - rdr->v_buf;
     if ((offset + count) * sizeof(struct vertex) > VERTEX_BUFFER_LENGTH)
-        GL_renderer_flush_vertices(rend);
+        GL_renderer_flush_vertices(rdr);
 
-    memcpy(rend->v_ptr, vertices, count * sizeof(struct vertex));
-    rend->v_ptr += count;
+    memcpy(rdr->v_ptr, vertices, count * sizeof(struct vertex));
+    rdr->v_ptr += count;
+}
+
+void GL_renderer_use_texture(struct renderer *rdr, struct texture *tex)
+{
+    /* TODO: this should not fail silently */
+    if (rdr->tex_count == ARRAYSIZE(rdr->tex_array))
+        return;
+
+    if (tex->index != -1)
+        return;
+
+    rdr->tex_array[rdr->tex_count] = tex;
+    tex->index = rdr->tex_count;
+    rdr->tex_count++;
 }

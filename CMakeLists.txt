@@ -9,7 +9,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_executable(rendering
     "gl_context.c"
     "gl_renderer.c"
+    "gl_texture.c"
     "glx_context.c"
+    "image.c"
     "main.c"
     "renderer.c"
     "util.c"
