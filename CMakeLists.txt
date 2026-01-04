@@ -24,6 +24,7 @@ add_executable(rendering
 target_include_directories(rendering PRIVATE
     "third_party/cglm/include"
     "third_party/glad/include"
+    "third_party/stb/include"
 )
 
 target_link_libraries(rendering PRIVATE
