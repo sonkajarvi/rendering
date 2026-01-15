@@ -11,7 +11,7 @@
 
 #include "rendering.h"
 
-void renderer_draw_rect(struct renderer *rdr, vec2 position, vec2 size, vec4 color)
+void renderer_draw_rect(struct renderer *rdr, vec2 position, vec2 size, uint32_t color)
 {
     /* TODO: make this const */
     static vec4 r = GLM_VEC4_ZERO_INIT;
@@ -19,7 +19,7 @@ void renderer_draw_rect(struct renderer *rdr, vec2 position, vec2 size, vec4 col
     renderer_draw_roundrect(rdr, position, size, r, color);
 }
 
-void renderer_draw_circle(struct renderer *rdr, vec2 position, float radius, vec4 color)
+void renderer_draw_circle(struct renderer *rdr, vec2 position, float radius, uint32_t color)
 {
     vec2 s = {radius * 2.0f, radius * 2.0f};
     vec4 r = {radius, radius, radius, radius};
@@ -27,14 +27,14 @@ void renderer_draw_circle(struct renderer *rdr, vec2 position, float radius, vec
     renderer_draw_roundrect(rdr, position, s, r, color);
 }
 
-void renderer_draw_roundrect(struct renderer *rdr, vec2 position, vec2 size, vec4 radius, vec4 color)
+void renderer_draw_roundrect(struct renderer *rdr, vec2 position, vec2 size, vec4 radius, uint32_t color)
 {
     renderer_draw_textured_roundrect(rdr, position, size, radius,
         &rdr->white_texture, (vec4){0.0f, 0.0f, 1.0f, 1.0f}, color);
 }
 
 #define _COPY_COLOR_CENTER_SIZE_RADIUS_INDEX(i) \
-    glm_vec4_copy(color, v[i].color);           \
+    glm_vec4_copy(c, v[i].color);           \
     glm_vec2_copy(position, v[i].center);       \
     glm_vec2_copy(size, v[i].size);             \
     glm_vec4_copy(r, v[i].radius);              \
@@ -42,12 +42,14 @@ void renderer_draw_roundrect(struct renderer *rdr, vec2 position, vec2 size, vec
 
 void renderer_draw_textured_roundrect(struct renderer *rdr,
     vec2 position, vec2 size, vec4 radius,
-    struct texture *tex, vec4 tex_coords, vec4 color)
+    struct texture *tex, vec4 tex_coords, uint32_t color)
 {
     struct vertex v[6];
-    vec4 r, t;
+    vec4 c, r, t;
     vec2 h, p, o;
     float m;
+
+    glm_vec4_copy(COLOR_TO_VEC4(color), c);
 
     glm_vec2_copy((vec2){size[0] / 2.0f, size[1] / 2.0f}, h);
     glm_vec2_copy((vec2){position[0] - h[0], position[1] + h[1]}, p);

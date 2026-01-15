@@ -27,14 +27,25 @@
 
 #define ARRAYSIZE(x) (sizeof(x) / sizeof(*x))
 
+#define COLOR_R(c) (((c) >> 24) & 255)
+#define COLOR_G(c) (((c) >> 16) & 255)
+#define COLOR_B(c) (((c) >>  8) & 255)
+#define COLOR_A(c) (((c)      ) & 255)
+
+#define COLOR_TO_VEC4(c)            \
+    (vec4){                         \
+        (float)COLOR_R(c) / 255.0f, \
+        (float)COLOR_G(c) / 255.0f, \
+        (float)COLOR_B(c) / 255.0f, \
+        (float)COLOR_A(c) / 255.0f  \
+    }
+
 #define min(a, b)                \
     ({                           \
         __typeof__(a) __a = (a); \
         __typeof__(a) __b = (b); \
         __a < __b ? __a : __b;   \
     })
-
-struct window;
 
 struct vertex {
     vec2 position;
@@ -120,21 +131,21 @@ double window_get_time(struct window *win);
  *       let's have a struct for the shape data and one function for drawing.
  */
 
-void renderer_draw_rect(struct renderer *rdr, vec2 position, vec2 size, vec4 color);
-void renderer_draw_circle(struct renderer *rdr, vec2 position, float radius, vec4 color);
-void renderer_draw_roundrect(struct renderer *rdr, vec2 position, vec2 size, vec4 radius, vec4 color);
+void renderer_draw_rect(struct renderer *rdr, vec2 position, vec2 size, uint32_t color);
+void renderer_draw_circle(struct renderer *rdr, vec2 position, float radius, uint32_t color);
+void renderer_draw_roundrect(struct renderer *rdr, vec2 position, vec2 size, vec4 radius, uint32_t color);
 
 void renderer_draw_textured_rect(struct renderer *rdr,
     vec2 position, vec2 size,
-    struct texture *tex, vec4 tex_coords, vec4 color);
+    struct texture *tex, vec4 tex_coords, uint32_t color);
 
 void renderer_draw_textured_circle(struct renderer *rdr,
     vec2 position, float radius,
-    struct texture *tex, vec4 tex_coords, vec4 color);
+    struct texture *tex, vec4 tex_coords, uint32_t color);
 
 void renderer_draw_textured_roundrect(struct renderer *rdr,
     vec2 position, vec2 size, vec4 radius,
-    struct texture *tex, vec4 tex_coords, vec4 color);
+    struct texture *tex, vec4 tex_coords, uint32_t color);
 
 /* X11 window */
 
