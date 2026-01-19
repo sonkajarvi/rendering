@@ -29,15 +29,17 @@ void main()
     vec2 p = gl_FragCoord.xy - u_WindowSize / 2.0;
 
     if (v_StrokeWidth > 0.0) {
+        float half = v_StrokeWidth / 2.0;
+
         vec2 so = v_Size + v_StrokeWidth;
-        vec4 ro;
-        ro.x = v_Radius.x > 0 ? v_Radius.x + v_StrokeWidth / 2.0 : 0.0;
-        ro.y = v_Radius.y > 0 ? v_Radius.y + v_StrokeWidth / 2.0 : 0.0;
-        ro.z = v_Radius.z > 0 ? v_Radius.z + v_StrokeWidth / 2.0 : 0.0;
-        ro.w = v_Radius.w > 0 ? v_Radius.w + v_StrokeWidth / 2.0 : 0.0;
+        vec4 ro = v_Radius;
+        ro.x += ro.x > 0 ? half : 0.0;
+        ro.y += ro.y > 0 ? half : 0.0;
+        ro.z += ro.z > 0 ? half : 0.0;
+        ro.w += ro.w > 0 ? half : 0.0;
 
         vec2 si = v_Size - v_StrokeWidth;
-        vec4 ri = v_Radius - v_StrokeWidth / 2.0;
+        vec4 ri = v_Radius - half;
 
         if (!in_roundrect(p, v_Center, so, ro) || in_roundrect(p, v_Center, si, ri))
             discard;
