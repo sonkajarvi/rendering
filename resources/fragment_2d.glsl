@@ -1,12 +1,12 @@
 #version 330 core
 
-
 flat in vec4 v_Color;
 flat in vec2 v_Center;
 flat in vec2 v_Size;
 flat in vec4 v_Radius;
 in vec2 v_TextureCoords;
 flat in float v_TextureIndex;
+flat in float v_StrokeWidth;
 
 out vec4 o_Color;
 
@@ -28,8 +28,23 @@ void main()
 {
     vec2 p = gl_FragCoord.xy - u_WindowSize / 2.0;
 
-    if (!in_roundrect(p, v_Center, v_Size, v_Radius))
-        discard;
+    if (v_StrokeWidth > 0.0) {
+        vec2 so = v_Size + v_StrokeWidth;
+        vec4 ro;
+        ro.x = v_Radius.x > 0 ? v_Radius.x + v_StrokeWidth / 2.0 : 0.0;
+        ro.y = v_Radius.y > 0 ? v_Radius.y + v_StrokeWidth / 2.0 : 0.0;
+        ro.z = v_Radius.z > 0 ? v_Radius.z + v_StrokeWidth / 2.0 : 0.0;
+        ro.w = v_Radius.w > 0 ? v_Radius.w + v_StrokeWidth / 2.0 : 0.0;
+
+        vec2 si = v_Size - v_StrokeWidth;
+        vec4 ri = v_Radius - v_StrokeWidth / 2.0;
+
+        if (!in_roundrect(p, v_Center, so, ro) || in_roundrect(p, v_Center, si, ri))
+            discard;
+    } else {
+        if (!in_roundrect(p, v_Center, v_Size, v_Radius))
+            discard;
+    }
 
     vec4 c = v_Color;
 

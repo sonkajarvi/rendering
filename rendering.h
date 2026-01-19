@@ -15,6 +15,8 @@
 #include <X11/X.h>
 
 #include <cglm/types.h>
+#include <cglm/vec2.h>
+#include <cglm/vec4.h>
 #include <glad/gl.h>
 #include <glad/glx.h>
 
@@ -47,6 +49,51 @@
         __a < __b ? __a : __b;   \
     })
 
+#define RECT_DEFAULT_INIT               \
+    {                                   \
+        .position = GLM_VEC2_ZERO_INIT, \
+        .size = GLM_VEC2_ZERO_INIT,     \
+        .radius = GLM_VEC4_ZERO_INIT    \
+    }
+
+#define STYLE_DEFAULT_INIT              \
+    {                                   \
+        .style = STYLE_FILL,            \
+        .color = 0xffffffff,            \
+        .tx_texture = NULL,             \
+        .tx_coords = GLM_VEC4_ZERO_INIT \
+    }
+
+#define TEXTURE_FULL(tex)    \
+    (vec4){                  \
+        0.0f,                \
+        0.0f,                \
+        (float)(tex)->width, \
+        (float)(tex)->height \
+    }
+
+#define STYLE_FILL 0
+#define STYLE_STROKE 1
+#define STYLE_TEXTURED_FILL 2
+
+struct rect {
+    vec2 position;
+    vec2 size;
+    vec4 radius;
+};
+
+struct style {
+    int style;
+    uint32_t color;
+
+    /* stroke */
+    float st_width;
+
+    /* textured fill */
+    struct texture *tx_texture;
+    vec4 tx_coords;
+};
+
 struct vertex {
     vec2 position;
     vec4 color;
@@ -55,6 +102,7 @@ struct vertex {
     vec4 radius;
     vec2 texture_coords;
     float texture_index;
+    float stroke_width;
 };
 
 struct image {
@@ -127,25 +175,7 @@ double window_get_time(struct window *win);
 
 /* renderer */
 
-/* TODO: instead of passing bunch of arguments to million different functions,
- *       let's have a struct for the shape data and one function for drawing.
- */
-
-void renderer_draw_rect(struct renderer *rdr, vec2 position, vec2 size, uint32_t color);
-void renderer_draw_circle(struct renderer *rdr, vec2 position, float radius, uint32_t color);
-void renderer_draw_roundrect(struct renderer *rdr, vec2 position, vec2 size, vec4 radius, uint32_t color);
-
-void renderer_draw_textured_rect(struct renderer *rdr,
-    vec2 position, vec2 size,
-    struct texture *tex, vec4 tex_coords, uint32_t color);
-
-void renderer_draw_textured_circle(struct renderer *rdr,
-    vec2 position, float radius,
-    struct texture *tex, vec4 tex_coords, uint32_t color);
-
-void renderer_draw_textured_roundrect(struct renderer *rdr,
-    vec2 position, vec2 size, vec4 radius,
-    struct texture *tex, vec4 tex_coords, uint32_t color);
+void renderer_draw_rect(struct renderer *rdr, struct rect *rect, struct style *style);
 
 /* X11 window */
 

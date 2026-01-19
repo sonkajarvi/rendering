@@ -146,6 +146,11 @@ int GL_renderer_create(struct renderer *rdr)
         sizeof(struct vertex), (void *)offsetof(struct vertex, texture_index));
     glEnableVertexAttribArray(6);
 
+    /* stroke width */
+    glVertexAttribPointer(7, 1, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void *)offsetof(struct vertex, stroke_width));
+    glEnableVertexAttribArray(7);
+
     rdr->program = create_shader(rdr, RESOURCES_PATH "/vertex_2d.glsl", RESOURCES_PATH "/fragment_2d.glsl");
     if (!rdr->program) {
         free(rdr->v_buf);
