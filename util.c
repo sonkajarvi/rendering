@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025, sonkajarvi
+ * Copyright (c) 2025-2026, sonkajarvi
  *
  * Licensed under the BSD 2-Clause License.
  * The full license can be found in the LICENSE.txt file.
@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "rendering.h"
+#include "window.h"
 
 char *read_file(const char *path)
 {

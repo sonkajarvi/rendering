@@ -12,6 +12,8 @@ add_executable(rendering
     "gl_context.c"
     "glx_context.c"
     "image.c"
+    "renderer.c"
+    "util.c"
     "x11_window.c"
 
     # glad sources
