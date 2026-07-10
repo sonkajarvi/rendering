@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025, sonkajarvi
+ * Copyright (c) 2025-2026, sonkajarvi
  *
  * Licensed under the BSD 2-Clause License.
  * The full license can be found in the LICENSE.txt file.
@@ -12,13 +12,13 @@
 #include <glad/gl.h>
 #include <glad/glx.h>
 
-#include "rendering.h"
+#include "window.h"
 
-static int GLX_load_functions(struct window *w, int screen)
+static int glx_load_functions(struct window *window, int screen)
 {
     int version;
 
-    version = gladLoadGLX(w->display, screen, GL_get_proc_address);
+    version = gladLoadGLX(window->display, screen, gl_get_proc_address);
     if (!version) {
         printf(ERROR "GLX: failed to load functions\n");
         return -1;
@@ -45,14 +45,15 @@ static const int fbconfig_attribs[] = {
     None
 };
 
-static int GLX_choose_fbconfig(struct window *w, int screen, GLXFBConfig *fbc)
+static int glx_choose_fbconfig(struct window *window, int screen,
+                               GLXFBConfig *fbc)
 {
     GLXFBConfig *configs;
     XVisualInfo *vi;
     int count, buffers, samples;
     int best, best_samples, worst, worst_samples;
 
-    configs = glXChooseFBConfig(w->display, screen, fbconfig_attribs, &count);
+    configs = glXChooseFBConfig(window->display, screen, fbconfig_attribs, &count);
     if (!configs) {
         printf(ERROR "GLX: failed to choose FB config\n");
         return -1;
@@ -60,10 +61,12 @@ static int GLX_choose_fbconfig(struct window *w, int screen, GLXFBConfig *fbc)
 
     best = -1, worst = -1, best_samples = -1, worst_samples = 999;
     for (int i = 0; i < count; i++) {
-        vi = glXGetVisualFromFBConfig(w->display, configs[i]);
+        vi = glXGetVisualFromFBConfig(window->display, configs[i]);
         if (vi) {
-            glXGetFBConfigAttrib(w->display, configs[i], GLX_SAMPLE_BUFFERS, &buffers);
-            glXGetFBConfigAttrib(w->display, configs[i], GLX_SAMPLES, &samples);
+            glXGetFBConfigAttrib(window->display, configs[i],
+                                 GLX_SAMPLE_BUFFERS, &buffers);
+            glXGetFBConfigAttrib(window->display, configs[i], GLX_SAMPLES,
+                                 &samples);
 
             if (best < 0 || (buffers && samples > best_samples)) {
                 best = i;
@@ -90,36 +93,42 @@ static const int context_attribs[] = {
     None
 };
 
-int GLX_create_context(struct window *w)
+int glx_create_context(struct window *window)
 {
-    w->context = glXCreateContextAttribsARB(w->display, w->fbconfig, NULL, True, context_attribs);
-    if (!w->context)
-        return -1;
+    window->context = glXCreateContextAttribsARB(window->display,
+                                                 window->fbconfig, NULL, True,
+                                                 context_attribs);
+    if (!window->context)
+        goto err;
 
-    if (!glXMakeCurrent(w->display, w->window, w->context))
-        return -1;
+    if (!glXMakeCurrent(window->display, window->window, window->context))
+        goto err;
 
     return 0;
+
+err:
+    printf(ERROR "GLX: failed to create context\n");
+    return -1;
 }
 
-void GLX_destroy_context(struct window *w)
+void glx_destroy_context(struct window *window)
 {
-    glXMakeCurrent(w->display, None, NULL);
-    glXDestroyContext(w->display, w->context);
+    glXMakeCurrent(window->display, None, NULL);
+    glXDestroyContext(window->display, window->context);
 
     printf(INFO "GLX: context destroyed\n");
 }
 
-XVisualInfo *GLX_get_visual(struct window *w)
+XVisualInfo *glx_get_visual(struct window *window)
 {
     int screen;
 
-    screen = DefaultScreen(w->display);
-    if (GLX_load_functions(w, screen) != 0)
+    screen = DefaultScreen(window->display);
+    if (glx_load_functions(window, screen) != 0)
         return NULL;
 
-    if (GLX_choose_fbconfig(w, screen, &w->fbconfig) != 0)
+    if (glx_choose_fbconfig(window, screen, &window->fbconfig) != 0)
         return NULL;
 
-    return glXGetVisualFromFBConfig(w->display, w->fbconfig);
+    return glXGetVisualFromFBConfig(window->display, window->fbconfig);
 }

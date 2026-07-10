@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025, sonkajarvi
+ * Copyright (c) 2025-2026, sonkajarvi
  *
  * Licensed under the BSD 2-Clause License.
  * The full license can be found in the LICENSE.txt file.
@@ -10,7 +10,7 @@
 
 #include <glad/gl.h>
 
-#include "rendering.h"
+#include "window.h"
 
 static void *handle = NULL;
 
@@ -20,7 +20,7 @@ static const char *so_names[] = {
     NULL
 };
 
-int GL_open_handle(void)
+int gl_open_handle(void)
 {
     int i;
 
@@ -42,23 +42,23 @@ int GL_open_handle(void)
     return 0;
 }
 
-void GL_close_handle(void)
+void gl_close_handle(void)
 {
     if (handle)
         dlclose(handle);
 }
 
-GLADapiproc GL_get_proc_address(const char *name)
+GLADapiproc gl_get_proc_address(const char *name)
 {
     return dlsym(handle, name);
 }
 
-int GL_load_functions(struct window *w)
+int gl_load_functions(struct window *w)
 {
     (void)w;
     int version;
 
-    version = gladLoadGL(GL_get_proc_address);
+    version = gladLoadGL(gl_get_proc_address);
     if (!version) {
         printf(ERROR "GL: failed to load functions\n");
         return -1;
@@ -67,11 +67,11 @@ int GL_load_functions(struct window *w)
     printf(INFO "GL: loaded functions for version %d.%d\n",
         GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
 
-    printf(INFO "OpenGL device information:\n");
-    printf(INFO "... vendor:         %s\n", glGetString(GL_VENDOR));
-    printf(INFO "... renderer:       %s\n", glGetString(GL_RENDERER));
-    printf(INFO "... GL version:     %s\n", glGetString(GL_VERSION));
-    printf(INFO "... GLSL version:   %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+    printf(INFO "GL: OpenGL device information:\n");
+    printf(INFO "GL: ... vendor:         %s\n", glGetString(GL_VENDOR));
+    printf(INFO "GL: ... renderer:       %s\n", glGetString(GL_RENDERER));
+    printf(INFO "GL: ... GL version:     %s\n", glGetString(GL_VERSION));
+    printf(INFO "GL: ... GLSL version:   %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
     return 0;
 }
