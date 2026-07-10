@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2025-2026, sonkajarvi
+ *
+ * Licensed under the BSD 2-Clause License.
+ * The full license can be found in the LICENSE.txt file.
+ */
+
 #version 330 core
 
 flat in vec4 v_Color;
@@ -13,6 +20,8 @@ out vec4 o_Color;
 uniform vec2 u_WindowSize;
 uniform sampler2D u_Textures[4];
 
+layout(origin_upper_left) in vec4 gl_FragCoord;
+
 bool in_roundrect(vec2 point, vec2 center, vec2 size, vec4 radius)
 {
     point -= center;
@@ -26,36 +35,37 @@ bool in_roundrect(vec2 point, vec2 center, vec2 size, vec4 radius)
 
 void main()
 {
-    vec2 p = gl_FragCoord.xy - u_WindowSize / 2.0;
+    vec2 pos = gl_FragCoord.xy;
 
     if (v_StrokeWidth > 0.0) {
         float half = v_StrokeWidth / 2.0;
 
-        vec2 so = v_Size + v_StrokeWidth;
-        vec4 ro = v_Radius;
-        ro.x += ro.x > 0 ? half : 0.0;
-        ro.y += ro.y > 0 ? half : 0.0;
-        ro.z += ro.z > 0 ? half : 0.0;
-        ro.w += ro.w > 0 ? half : 0.0;
+        vec2 size_out = v_Size + v_StrokeWidth;
+        vec4 radius_out = v_Radius;
+        radius_out.x += radius_out.x > 0 ? half : 0.0;
+        radius_out.y += radius_out.y > 0 ? half : 0.0;
+        radius_out.z += radius_out.z > 0 ? half : 0.0;
+        radius_out.w += radius_out.w > 0 ? half : 0.0;
 
-        vec2 si = v_Size - v_StrokeWidth;
-        vec4 ri = v_Radius - half;
+        vec2 size_in = v_Size - v_StrokeWidth;
+        vec4 radius_in = v_Radius - half;
 
-        if (!in_roundrect(p, v_Center, so, ro) || in_roundrect(p, v_Center, si, ri))
+        if (!in_roundrect(pos, v_Center, size_out, radius_out) ||
+            in_roundrect(pos, v_Center, size_in, radius_in))
             discard;
     } else {
-        if (!in_roundrect(p, v_Center, v_Size, v_Radius))
+        if (!in_roundrect(pos, v_Center, v_Size, v_Radius))
             discard;
     }
 
-    vec4 c = v_Color;
+    vec4 color = v_Color;
 
     switch (int(v_TextureIndex)) {
-    case 0: c *= texture(u_Textures[0], v_TextureCoords); break;
-    case 1: c *= texture(u_Textures[1], v_TextureCoords); break;
-    case 2: c *= texture(u_Textures[2], v_TextureCoords); break;
-    case 3: c *= texture(u_Textures[3], v_TextureCoords); break;
+    case 0: color *= texture(u_Textures[0], v_TextureCoords); break;
+    case 1: color *= texture(u_Textures[1], v_TextureCoords); break;
+    case 2: color *= texture(u_Textures[2], v_TextureCoords); break;
+    case 3: color *= texture(u_Textures[3], v_TextureCoords); break;
     }
 
-    o_Color = c;
+    o_Color = color;
 }

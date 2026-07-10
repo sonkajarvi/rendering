@@ -1,3 +1,10 @@
+/**
+ * Copyright (c) 2025-2026, sonkajarvi
+ *
+ * Licensed under the BSD 2-Clause License.
+ * The full license can be found in the LICENSE.txt file.
+ */
+
 #version 330 core
 
 layout (location = 0) in vec2 a_Position;
@@ -29,6 +36,7 @@ void main()
     v_TextureIndex = a_TextureIndex;
     v_StrokeWidth = a_StrokeWidth;
 
-    vec2 p = 2.0 * a_Position / u_WindowSize;
-    gl_Position = vec4(p, 0.0, 1.0);
+    vec2 pos = vec2(a_Position.x - u_WindowSize.x * 0.5,
+                    -a_Position.y + u_WindowSize.y * 0.5 - v_Size.y);
+    gl_Position = vec4(2.0 * pos / u_WindowSize, 0.0, 1.0);
 }
