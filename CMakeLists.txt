@@ -10,6 +10,8 @@ add_executable(rendering
     "main.c"
 
     "gl_context.c"
+    "gl_renderer.c"
+    "gl_texture.c"
     "glx_context.c"
     "image.c"
     "renderer.c"

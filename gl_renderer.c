@@ -1,114 +1,142 @@
 /**
- * Copyright (c) 2025, sonkajarvi
+ * Copyright (c) 2025-2026, sonkajarvi
  *
  * Licensed under the BSD 2-Clause License.
  * The full license can be found in the LICENSE.txt file.
  */
 
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <glad/gl.h>
 
-#include "rendering.h"
+#include "color.h"
+#include "gl_renderer.h"
+#include "image.h"
+#include "renderer.h"
+#include "window.h"
 
 /* Vertex buffer length, in bytes */
-#define VERTEX_BUFFER_LENGTH 4096
+#define VERTEX_BUFFER_LENGTH (sizeof(struct vertex) * 1024)
 
-static GLuint create_shader(struct renderer *rdr, const char *v_path, const char *f_path)
+static void gl_renderer_destroy(struct renderer *renderer)
 {
-    int ret;
-    char *v_source, *f_source;
-    GLuint program, v_shader, f_shader;
+    struct gl_renderer *gl_renderer = renderer_priv(renderer);
 
-    v_source = f_source = NULL;
-    program = v_shader = f_shader = 0;
+    glDeleteBuffers(1, &gl_renderer->vbo);
+    glDeleteVertexArrays(1, &gl_renderer->vao);
+    glDeleteProgram(gl_renderer->program);
 
-    /* Vertex shader */
-
-    v_source = read_file(v_path);
-    if (!v_source)
-        goto out_cleanup;
-
-    v_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(v_shader, 1, (void *)&v_source, NULL);
-    glCompileShader(v_shader);
-
-    glGetShaderiv(v_shader, GL_COMPILE_STATUS, &ret);
-    if (!ret) {
-        glGetShaderInfoLog(v_shader, VERTEX_BUFFER_LENGTH, NULL, (void *)rdr->v_buf);
-        printf(ERROR "GL: failed to compile vertex shader:\n%s", (char *)rdr->v_buf);
-        goto out_cleanup;
-    }
-
-    printf(INFO "GL: compiled vertex shader: path %s\n", v_path);
-
-    /* Fragment shader */
-
-    f_source = read_file(f_path);
-    if (!f_source)
-        goto out_cleanup;
-
-    f_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(f_shader, 1, (void *)&f_source, NULL);
-    glCompileShader(f_shader);
-
-    glGetShaderiv(f_shader, GL_COMPILE_STATUS, &ret);
-    if (!ret) {
-        glGetShaderInfoLog(f_shader, VERTEX_BUFFER_LENGTH, NULL, (void *)rdr->v_buf);
-        printf(ERROR "GL: failed to compile fragment shader:\n%s", (char *)rdr->v_buf);
-        goto out_cleanup;
-    }
-
-    printf(INFO "GL: compiled fragment shader: path %s\n", f_path);
-
-    /* Shader program */
-
-    program = glCreateProgram();
-    glAttachShader(program, v_shader);
-    glAttachShader(program, f_shader);
-    glLinkProgram(program);
-
-    glGetProgramiv(program, GL_LINK_STATUS, &ret);
-    if (!ret) {
-        glGetProgramInfoLog(program, VERTEX_BUFFER_LENGTH, NULL, (void *)rdr->v_buf);
-        printf(ERROR "GL: failed to create shader program:\n%s", (char *)rdr->v_buf);
-        goto out_cleanup;
-    }
-
-    printf(INFO "GL: created shader program: id %u\n", program);
-    return program;
-
-out_cleanup:
-    free(v_source);
-    glDeleteShader(v_shader);
-
-    free(f_source);
-    glDeleteShader(f_shader);
-
-    glDeleteProgram(program);
-
-    return 0;
+    gl_texture_destroy(gl_renderer->text_white);
+    free(gl_renderer->vert_buf);
 }
 
-int GL_renderer_create(struct renderer *rdr)
+static void gl_renderer_new_frame(struct renderer *renderer,
+                                  struct window *window)
 {
-    struct image white;
+    struct gl_renderer *gl_renderer = renderer_priv(renderer);
+    XWindowAttributes wa;
 
-    rdr->v_buf = malloc(VERTEX_BUFFER_LENGTH);
-    if (!rdr->v_buf) {
-        printf(ERROR "Failed to allocate vertex buffer\n");
-        return -1;
-    }
+    /* TODO: do not call X11 directly here */
+    XGetWindowAttributes(window->display, window->window, &wa);
+    glViewport(0, 0, wa.width, wa.height);
 
-    glGenVertexArrays(1, &rdr->vao);
-    glBindVertexArray(rdr->vao);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(COLOR_INT_TO_FLOAT(COLOR_R(renderer->clear_color)),
+                 COLOR_INT_TO_FLOAT(COLOR_G(renderer->clear_color)),
+                 COLOR_INT_TO_FLOAT(COLOR_B(renderer->clear_color)),
+                 1.0f);
 
-    glGenBuffers(1, &rdr->vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, rdr->vbo);
+    glUseProgram(gl_renderer->program);
+
+    GLfloat size[2];
+    size[0] = wa.width;
+    size[1] = wa.height;
+    glUniform2fv(glGetUniformLocation(gl_renderer->program, "u_WindowSize"), 1,
+                                      size);
+
+    gl_renderer->vert_ptr = gl_renderer->vert_buf;
+
+    gl_renderer->text_used = 0;
+    renderer_use_texture(renderer, gl_renderer->text_white);
+}
+
+static void gl_renderer_push_vertices(struct renderer *renderer,
+                                      struct vertex *vertices, size_t count)
+{
+    struct gl_renderer *gl_renderer = renderer_priv(renderer);
+    size_t offset;
+
+    offset = gl_renderer->vert_ptr - gl_renderer->vert_buf;
+    if ((offset + count) * sizeof(struct vertex) > VERTEX_BUFFER_LENGTH)
+        renderer_flush_vertices(renderer);
+
+    memcpy(gl_renderer->vert_ptr, vertices, count * sizeof(struct vertex));
+    gl_renderer->vert_ptr += count;
+}
+
+static void gl_renderer_flush_vertices(struct renderer *renderer)
+{
+    struct gl_renderer *gl_renderer = renderer_priv(renderer);
+    static const GLint array[] = {0, 1, 2, 3};
+    size_t offset;
+
+    if (gl_renderer->vert_ptr == gl_renderer->vert_buf)
+        return;
+
+    glUniform1iv(glGetUniformLocation(gl_renderer->program, "u_Textures"), 4,
+                                      array);
+
+    for (int i = 0; i < gl_renderer->text_used; i++)
+        glBindTextureUnit(i, gl_renderer->text_array[i]->id);
+
+    glBindVertexArray(gl_renderer->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, gl_renderer->vbo);
+
+    offset = gl_renderer->vert_ptr - gl_renderer->vert_buf;
+    glBufferSubData(GL_ARRAY_BUFFER, 0, offset * sizeof(struct vertex),
+                    gl_renderer->vert_buf);
+    glDrawArrays(GL_TRIANGLES, 0, offset);
+
+    gl_renderer->vert_ptr = gl_renderer->vert_buf;
+
+    for (int i = 0; i < gl_renderer->text_used; i++)
+        gl_renderer->text_array[i]->index = -1;
+}
+
+static struct texture *gl_renderer_use_texture(struct renderer *renderer,
+                                               struct texture *texture)
+{
+    struct gl_renderer *gl_renderer = renderer_priv(renderer);
+
+    if (gl_renderer->text_used == ARRAY_SIZE(gl_renderer->text_array))
+        return NULL;
+
+    if (!texture)
+        texture = gl_renderer->text_white;
+
+    if (texture->index != -1)
+        goto out;
+
+    gl_renderer->text_array[gl_renderer->text_used] = texture;
+    texture->index = gl_renderer->text_used;
+    gl_renderer->text_used++;
+
+out:
+    return texture;
+}
+
+static void gl_initialize_vertex_objects(struct gl_renderer *gl_renderer)
+{
+    glGenVertexArrays(1, &gl_renderer->vao);
+    glBindVertexArray(gl_renderer->vao);
+
+    glGenBuffers(1, &gl_renderer->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, gl_renderer->vbo);
     glBufferData(GL_ARRAY_BUFFER, VERTEX_BUFFER_LENGTH, NULL, GL_DYNAMIC_DRAW);
 
     /* position */
@@ -150,112 +178,138 @@ int GL_renderer_create(struct renderer *rdr)
     glVertexAttribPointer(7, 1, GL_FLOAT, GL_FALSE,
         sizeof(struct vertex), (void *)offsetof(struct vertex, stroke_width));
     glEnableVertexAttribArray(7);
+}
 
-    rdr->program = create_shader(rdr, RESOURCES_PATH "/vertex_2d.glsl", RESOURCES_PATH "/fragment_2d.glsl");
-    if (!rdr->program) {
-        free(rdr->v_buf);
-        return -1;
+static bool gl_initialize_shader(struct gl_renderer *gl_renderer,
+                                 const char *vert_path, const char *frag_path)
+{
+    char *vert_src = NULL, *frag_src = NULL;
+    GLuint vert_shader = 0, frag_shader = 0;
+    GLint success;
+
+    /*
+     * Vertex shader
+     */
+    vert_src = read_file(vert_path);
+    if (!vert_src) {
+        success = false;
+        goto err;
     }
 
-    white.data = (uint8_t[]){0xff, 0xff, 0xff, 0xff};
-    white.width = 1;
-    white.height = 1;
-    GL_texture_create(&rdr->white_texture, &white);
+    vert_shader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vert_shader, 1, (void *)&vert_src, NULL);
+    glCompileShader(vert_shader);
 
-    memset(rdr->tex_array, 0, sizeof(rdr->tex_array));
-    rdr->tex_count = 0;
+    glGetShaderiv(vert_shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(vert_shader, VERTEX_BUFFER_LENGTH, NULL,
+                           (void *)gl_renderer->vert_buf);
+        printf(ERROR "GL RENDERER: failed to compile fragment sahder:\n%s",
+               (char *)gl_renderer->vert_buf);
+        goto err;
+    }
 
-    return 0;
+    printf(INFO "GL RENDERER: compiled vertex shader: path %s\n", vert_path);
+
+    /*
+     * Fragment shader
+     */
+    frag_src = read_file(frag_path);
+    if (!frag_path) {
+        success = false;
+        goto err;
+    }
+
+    frag_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(frag_shader, 1, (void *)&frag_src, NULL);
+    glCompileShader(frag_shader);
+
+    glGetShaderiv(frag_shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(frag_shader, VERTEX_BUFFER_LENGTH, NULL,
+                           (void *)gl_renderer->vert_buf);
+        printf(ERROR "GL RENDERER: failed to compile fragment shader:\n%s",
+               (char *)gl_renderer->vert_buf);
+        goto err;
+    }
+
+    printf(INFO "GL RENDERER: compiled fragment shader: path %s\n", frag_path);
+
+    /*
+     * Shader program
+     */
+    gl_renderer->program = glCreateProgram();
+    glAttachShader(gl_renderer->program, vert_shader);
+    glAttachShader(gl_renderer->program, frag_shader);
+    glLinkProgram(gl_renderer->program);
+
+    glGetProgramiv(gl_renderer->program, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(gl_renderer->program, VERTEX_BUFFER_LENGTH, NULL,
+                            (void *)gl_renderer->vert_buf);
+        printf(ERROR "GL RENDERER: failed to create shader program:\n%s",
+               (char *)gl_renderer->vert_buf);
+        goto err;
+    }
+
+    printf(INFO "GL RENDERER: created shader program: id %u\n",
+           gl_renderer->program);
+
+err:
+    free(vert_src);
+    glDeleteShader(vert_shader);
+
+    free(frag_src);
+    glDeleteShader(frag_shader);
+
+    if (!success)
+        glDeleteProgram(gl_renderer->program);
+
+    return success;
 }
 
-void GL_renderer_destroy(struct renderer *rdr)
+struct renderer *gl_renderer_create(void)
 {
-    glDeleteBuffers(1, &rdr->vbo);
-    glDeleteVertexArrays(1, &rdr->vao);
-    glDeleteProgram(rdr->program);
+    struct gl_renderer *gl_renderer;
+    struct renderer *renderer;
+    struct image image;
+    int ret;
 
-    GL_texture_destroy(&rdr->white_texture);
-    free(rdr->v_buf);
-}
+    renderer = renderer_alloc(sizeof(*gl_renderer));
+    if (!renderer)
+        return NULL;
 
-void GL_renderer_clear_color(struct renderer *rdr, float r, float g, float b)
-{
-    (void)rdr;
-    glClearColor(r, g, b, 1.0f);
-}
+    renderer->destroy = gl_renderer_destroy;
+    renderer->new_frame = gl_renderer_new_frame;
+    renderer->push_vertices = gl_renderer_push_vertices;
+    renderer->flush_vertices = gl_renderer_flush_vertices;
+    renderer->use_texture = gl_renderer_use_texture;
+    gl_renderer = renderer_priv(renderer);
 
-void GL_renderer_new_frame(struct renderer *rdr, struct window *w)
-{
-    XWindowAttributes wa;
+    gl_renderer->vert_buf = malloc(VERTEX_BUFFER_LENGTH);
+    if (!gl_renderer->vert_buf) {
+        printf(ERROR "GL RENDERER: failed to allocate vertex buffer\n");
+        goto free_renderer;
+    }
 
-    XGetWindowAttributes(w->display, w->window, &wa);
-    glViewport(0, 0, wa.width, wa.height);
+    gl_initialize_vertex_objects(gl_renderer);
+    ret = gl_initialize_shader(gl_renderer,
+                               RESOURCES_PATH "/vertex_2d.glsl",
+                               RESOURCES_PATH "/fragment_2d.glsl");
+    if (!ret)
+        goto free_vert_buf;
 
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glClear(GL_COLOR_BUFFER_BIT);
+    image.data = (unsigned char[]){0xff, 0xff, 0xff, 0xff};
+    image.width = 1;
+    image.height = 1;
+    gl_renderer->text_white = gl_texture_create(&image);
 
-    glUseProgram(rdr->program);
+    return renderer;
 
-    GLfloat size[2];
-    size[0] = wa.width;
-    size[1] = wa.height;
-    glUniform2fv(glGetUniformLocation(rdr->program, "u_WindowSize"), 1, size);
+free_vert_buf:
+    free(gl_renderer->vert_buf);
+free_renderer:
+    free(renderer);
 
-    rdr->v_ptr = rdr->v_buf;
-
-    rdr->tex_count = 0;
-    GL_renderer_use_texture(rdr, &rdr->white_texture);
-}
-
-void GL_renderer_flush_vertices(struct renderer *rdr)
-{
-    static const GLint array[] = {0, 1, 2, 3};
-    size_t offset;
-
-    if (rdr->v_ptr == rdr->v_buf)
-        return;
-
-    glUniform1iv(glGetUniformLocation(rdr->program, "u_Textures"), 4, array);
-
-    for (int i = 0; i < rdr->tex_count; i++)
-        glBindTextureUnit(i, rdr->tex_array[i]->id);
-
-    glBindVertexArray(rdr->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, rdr->vbo);
-
-    offset = rdr->v_ptr - rdr->v_buf;
-    glBufferSubData(GL_ARRAY_BUFFER, 0, offset * sizeof(struct vertex), rdr->v_buf);
-    glDrawArrays(GL_TRIANGLES, 0, offset);
-
-    rdr->v_ptr = rdr->v_buf;
-
-    for (int i = 0; i < rdr->tex_count; i++)
-        rdr->tex_array[i]->index = -1;
-}
-
-void GL_renderer_push_vertices(struct renderer *rdr, struct vertex *vertices, size_t count)
-{
-    size_t offset;
-
-    offset = rdr->v_ptr - rdr->v_buf;
-    if ((offset + count) * sizeof(struct vertex) > VERTEX_BUFFER_LENGTH)
-        GL_renderer_flush_vertices(rdr);
-
-    memcpy(rdr->v_ptr, vertices, count * sizeof(struct vertex));
-    rdr->v_ptr += count;
-}
-
-void GL_renderer_use_texture(struct renderer *rdr, struct texture *tex)
-{
-    /* TODO: this should not fail silently */
-    if (rdr->tex_count == ARRAYSIZE(rdr->tex_array))
-        return;
-
-    if (tex->index != -1)
-        return;
-
-    rdr->tex_array[rdr->tex_count] = tex;
-    tex->index = rdr->tex_count;
-    rdr->tex_count++;
+    return NULL;
 }

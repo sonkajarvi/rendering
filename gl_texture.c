@@ -5,37 +5,50 @@
  * The full license can be found in the LICENSE.txt file.
  */
 
-#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <glad/gl.h>
 
-#include "rendering.h"
+#include "image.h"
+#include "renderer.h"
 
-int GL_texture_create(struct texture *tex, struct image *img)
+struct texture *gl_texture_create(struct image *image)
 {
-    glGenTextures(1, &tex->id);
-    glBindTexture(GL_TEXTURE_2D, tex->id);
+    struct texture *texture;
+
+    texture = malloc(sizeof(*texture));
+    if (!texture)
+        return NULL;
+
+    glGenTextures(1, &texture->id);
+    glBindTexture(GL_TEXTURE_2D, texture->id);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
-        img->width, img->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img->data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image->width, image->height,
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, image->data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
-    tex->width = img->width;
-    tex->height = img->height;
-    tex->index = -1;
+    texture->width = image->width;
+    texture->height = image->height;
+    texture->index = -1;
 
-    printf(INFO "GL: created texture, id %u\n", tex->id);
+    printf(INFO "GL TEXTURE: created texture: id %u\n", texture->id);
 
-    return 0;
+    return texture;
 }
 
-void GL_texture_destroy(struct texture *tex)
+void gl_texture_destroy(struct texture *texture)
 {
-    glDeleteTextures(1, &tex->id);
+    GLuint id = texture->id;
+
+    glDeleteTextures(1, &texture->id);
+
+    free(texture);
+
+    printf(INFO "GL TEXTURE: destroyed texture: id %u\n", id);
 }
