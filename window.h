@@ -63,7 +63,7 @@ void glx_destroy_context(struct window *window);
  * GL context
  */
 GLADapiproc gl_get_proc_address(const char *name);
-int gl_load_functions(struct window *window);
+int gl_load_functions(void);
 int gl_open_handle(void);
 void gl_close_handle(void);
 

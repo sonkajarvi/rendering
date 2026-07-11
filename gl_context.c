@@ -53,9 +53,8 @@ GLADapiproc gl_get_proc_address(const char *name)
     return dlsym(handle, name);
 }
 
-int gl_load_functions(struct window *w)
+int gl_load_functions(void)
 {
-    (void)w;
     int version;
 
     version = gladLoadGL(gl_get_proc_address);
@@ -65,13 +64,14 @@ int gl_load_functions(struct window *w)
     }
 
     printf(INFO "GL: loaded functions for version %d.%d\n",
-        GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
+           GLAD_VERSION_MAJOR(version), GLAD_VERSION_MINOR(version));
 
     printf(INFO "GL: OpenGL device information:\n");
     printf(INFO "GL: ... vendor:         %s\n", glGetString(GL_VENDOR));
     printf(INFO "GL: ... renderer:       %s\n", glGetString(GL_RENDERER));
     printf(INFO "GL: ... GL version:     %s\n", glGetString(GL_VERSION));
-    printf(INFO "GL: ... GLSL version:   %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+    printf(INFO "GL: ... GLSL version:   %s\n",
+           glGetString(GL_SHADING_LANGUAGE_VERSION));
 
     return 0;
 }

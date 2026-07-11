@@ -106,7 +106,7 @@ int x11_window_create(struct window *window, int width, int height)
     if (__x11_window_create(window, width, height) != 0)
         return -1;
 
-    if (gl_load_functions(window) != 0)
+    if (gl_load_functions() != 0)
         return -1;
 
     printf(INFO "X11 WINDOW: created new window: width %d, height %d\n", width,
