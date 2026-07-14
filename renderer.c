@@ -65,7 +65,8 @@ void renderer_destroy(struct renderer *renderer)
     glm_vec2_copy(rect->size, vertices[i].size);    \
     glm_vec4_copy(radius, vertices[i].radius);      \
     vertices[i].texture_index = texture->index;     \
-    vertices[i].stroke_width = width;
+    vertices[i].stroke_width = width;               \
+    vertices[i].rotation = rect->rotation;
 
 void renderer_draw_rect(struct renderer *renderer, struct rect *rect,
                         struct style *style)

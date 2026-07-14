@@ -30,6 +30,7 @@ struct vertex {
     vec2 texture_coords;
     float texture_index;
     float stroke_width;
+    float rotation;
 };
 
 #define TEXTURE_COORDS(texture)  \
@@ -67,6 +68,8 @@ void gl_texture_destroy(struct texture *texture);
 struct rect {
     vec2 position;
     vec2 size;
+    /* TODO: add X and Y axes as well. */
+    float rotation;
     vec4 radius;
 };
 
