@@ -178,6 +178,11 @@ static void gl_initialize_vertex_objects(struct gl_renderer *gl_renderer)
     glVertexAttribPointer(7, 1, GL_FLOAT, GL_FALSE,
         sizeof(struct vertex), (void *)offsetof(struct vertex, stroke_width));
     glEnableVertexAttribArray(7);
+
+    /* rotation */
+    glVertexAttribPointer(8, 1, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void *)offsetof(struct vertex, rotation));
+    glEnableVertexAttribArray(8);
 }
 
 static bool gl_initialize_shader(struct gl_renderer *gl_renderer,

@@ -14,6 +14,7 @@ flat in vec4 v_Radius;
 in vec2 v_TextureCoords;
 flat in float v_TextureIndex;
 flat in float v_StrokeWidth;
+flat in float v_Rotation;
 
 out vec4 o_Color;
 
@@ -35,7 +36,18 @@ bool in_roundrect(vec2 point, vec2 center, vec2 size, vec4 radius)
 
 void main()
 {
-    vec2 pos = gl_FragCoord.xy;
+    vec3 v = gl_FragCoord.xyz;
+
+    vec3 k = vec3(0.0, 0.0, 1.0);
+    vec3 p = vec3(v_Center.x, v_Center.y, 0.0);
+    float a = radians(-v_Rotation);
+
+    /* Rodrigues' rotation formula (with pivot, inverted) */
+    v = p + (v - p) * cos(a) +
+        cross(k, v - p) * sin(a) +
+        k * dot(k, v - p) * (1 - cos(a));
+
+    vec2 pos = v.xy;
 
     if (v_StrokeWidth > 0.0) {
         float half = v_StrokeWidth / 2.0;
